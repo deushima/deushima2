@@ -1379,9 +1379,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         }
 
         function closeInlineColorPicker() {
-            if (!activeInlineColorControl) return;
-            activeInlineColorControl.root.classList.remove('is-open');
-            activeInlineColorControl.panel.hidden = true;
+            document.querySelectorAll('.inline-color-control.is-open').forEach((root) => {
+                root.classList.remove('is-open');
+            });
+            document.querySelectorAll('.inline-color-panel').forEach((panel) => {
+                panel.hidden = true;
+            });
             activeInlineColorControl = null;
         }
 
@@ -1474,8 +1477,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             control.button.addEventListener('click', (event) => {
                 event.stopPropagation();
-                if (activeInlineColorControl && activeInlineColorControl !== control) closeInlineColorPicker();
                 const shouldOpen = activeInlineColorControl !== control || control.panel.hidden;
+                closeInlineColorPicker();
                 activeInlineColorControl = shouldOpen ? control : null;
                 control.root.classList.toggle('is-open', shouldOpen);
                 control.panel.hidden = !shouldOpen;
@@ -1642,6 +1645,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
         function renderGradientStopsUI() {
             if (!gradientStopsRoot) return;
+            closeInlineColorPicker();
             ensureGradientSelection();
             const orderedStops = getOrderedGradientStops();
             const selectedStop = ensureGradientSelection();
@@ -2696,6 +2700,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 });
 
                 card.addEventListener('click', () => {
+                    closeInlineColorPicker();
                     activeToolId = tool.id;
                     renderInfo(tool);
                     syncFolderVisibility(tool.id);
@@ -2763,6 +2768,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         }
 
         controlsToggle?.addEventListener('click', () => {
+            closeInlineColorPicker();
             setDrawerState(!controlsDrawer.classList.contains('is-open'));
         });
         window.addEventListener('resize', syncFileCallout);
