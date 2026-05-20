@@ -1396,6 +1396,23 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             control.svHandle.style.top = `${(1 - hsv.v) * 100}%`;
         }
 
+        function positionInlineColorPanel(control) {
+            const buttonRect = control.button.getBoundingClientRect();
+            const panelWidth = 220;
+            const panelHeight = 190;
+            const gutter = 10;
+            const left = Math.min(
+                window.innerWidth - panelWidth - gutter,
+                Math.max(gutter, buttonRect.right - panelWidth)
+            );
+            let top = buttonRect.bottom + 8;
+            if (top + panelHeight > window.innerHeight - gutter) {
+                top = Math.max(gutter, buttonRect.top - panelHeight - 8);
+            }
+            control.panel.style.left = `${Math.round(left)}px`;
+            control.panel.style.top = `${Math.round(top)}px`;
+        }
+
         function createInlineColorControl(input) {
             if (input.dataset.inlineColorEnhanced === 'true') return null;
             input.dataset.inlineColorEnhanced = 'true';
@@ -1430,6 +1447,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 hue: root.querySelector('.inline-color-hue'),
                 hex: root.querySelector('.inline-color-hex')
             };
+            document.body.appendChild(control.panel);
 
             control.value.textContent = normalizeHexColor(input.value).toUpperCase();
 
@@ -1446,6 +1464,14 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 event.stopPropagation();
             });
 
+            control.panel.addEventListener('pointerdown', (event) => {
+                event.stopPropagation();
+            });
+
+            control.panel.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
+
             control.button.addEventListener('click', (event) => {
                 event.stopPropagation();
                 if (activeInlineColorControl && activeInlineColorControl !== control) closeInlineColorPicker();
@@ -1453,7 +1479,10 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 activeInlineColorControl = shouldOpen ? control : null;
                 control.root.classList.toggle('is-open', shouldOpen);
                 control.panel.hidden = !shouldOpen;
-                if (shouldOpen) syncInlineColorControl(control);
+                if (shouldOpen) {
+                    syncInlineColorControl(control);
+                    positionInlineColorPanel(control);
+                }
             });
 
             control.hue.addEventListener('input', () => {
