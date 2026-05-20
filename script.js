@@ -2539,7 +2539,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         ];
 
         const hudToolCatalog = [
-            { id: 'files', index: '01', title: 'Archivos', meta: 'Importacion / Exportacion', description: 'Gestiona el SVG, la carga de nuevos assets y la exportacion final en PNG con fondo o transparente, sin incluir la esfera ambiental.', categories: ['all', 'archivo'], folder: fileFolder, callout: 'probá tu logo' },
+            { id: 'files', index: '01', title: 'Archivos', meta: 'SVG / PNG', description: 'Gestiona el SVG, la carga de nuevos assets y la exportacion final en PNG con fondo o transparente, sin incluir la esfera ambiental.', categories: ['all', 'archivo'], folder: fileFolder, callout: 'probá tu logo' },
             { id: 'scene', index: '02', title: 'Escena', meta: 'Visual / Fondo', description: 'Controla el color de fondo de la mesa de trabajo para decidir si el logo vive sobre un negro pleno o sobre una base distinta.', categories: ['all', 'visual'], folder: sceneFolder },
             { id: 'fluid', index: '03', title: 'Dinamica Fluida', meta: 'Simulacion / Fluido', description: 'Define la vibracion liquida del metal, cuanto se desplaza la materia sobre la forma y que tan nitidos se mantienen sus bordes.', categories: ['all', 'fluido'], folder: effectFolder },
             { id: 'iridescence', index: '04', title: 'Iridescencia', meta: 'Color / Refraccion', description: 'Anade el desvio cromatico interno del material y regula el espesor que determina como aparecen esos matices en la superficie.', categories: ['all', 'material', 'color'], folder: iridescenceFolder },
