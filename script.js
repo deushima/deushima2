@@ -1385,6 +1385,10 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             activeInlineColorControl = null;
         }
 
+        function isInsideInlineColorPicker(target) {
+            return Boolean(target?.closest?.('.inline-color-control'));
+        }
+
         function syncInlineColorControl(control, color = control.input.value) {
             const hex = normalizeHexColor(color);
             const hsv = rgbToHsv(hexToRgb(hex));
@@ -1432,6 +1436,14 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             };
 
             control.value.textContent = normalizeHexColor(input.value).toUpperCase();
+
+            root.addEventListener('pointerdown', (event) => {
+                event.stopPropagation();
+            });
+
+            root.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
 
             const applyFromHsv = (hsv) => {
                 const hex = hsvToHex(hsv);
@@ -2419,11 +2431,11 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             enhanceInlineColorInputs(controlsPanel);
         }
 
-        document.addEventListener('click', (event) => {
-            if (activeInlineColorControl && !activeInlineColorControl.root.contains(event.target)) {
+        document.addEventListener('pointerdown', (event) => {
+            if (activeInlineColorControl && !isInsideInlineColorPicker(event.target)) {
                 closeInlineColorPicker();
             }
-        });
+        }, true);
 
         const toolCatalog = [
             {
