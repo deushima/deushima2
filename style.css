@@ -739,10 +739,6 @@ body > .site-footer {
     overflow: visible;
 }
 
-.controls-drawer__body .lil-gui .controller.color:has(.inline-color-control.is-open) {
-    z-index: 40;
-}
-
 .controls-drawer__body .lil-gui .controller.color .widget {
     position: relative;
 }
@@ -866,6 +862,7 @@ body > .site-footer {
 }
 
 .inline-color-control.is-open {
+    position: relative;
     z-index: 30;
 }
 

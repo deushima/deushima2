@@ -1385,10 +1385,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             activeInlineColorControl = null;
         }
 
-        function isInsideInlineColorPicker(target) {
-            return Boolean(target?.closest?.('.inline-color-control'));
-        }
-
         function syncInlineColorControl(control, color = control.input.value) {
             const hex = normalizeHexColor(color);
             const hsv = rgbToHsv(hexToRgb(hex));
@@ -1437,14 +1433,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             control.value.textContent = normalizeHexColor(input.value).toUpperCase();
 
-            root.addEventListener('pointerdown', (event) => {
-                event.stopPropagation();
-            });
-
-            root.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
-
             const applyFromHsv = (hsv) => {
                 const hex = hsvToHex(hsv);
                 control.value.textContent = hex.toUpperCase();
@@ -1454,13 +1442,18 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             const readCurrentHsv = () => rgbToHsv(hexToRgb(input.value));
 
+            control.root.addEventListener('pointerdown', (event) => {
+                event.stopPropagation();
+            });
+
             control.button.addEventListener('click', (event) => {
                 event.stopPropagation();
                 if (activeInlineColorControl && activeInlineColorControl !== control) closeInlineColorPicker();
-                activeInlineColorControl = control;
-                control.root.classList.toggle('is-open');
-                control.panel.hidden = !control.root.classList.contains('is-open');
-                if (!control.panel.hidden) syncInlineColorControl(control);
+                const shouldOpen = activeInlineColorControl !== control || control.panel.hidden;
+                activeInlineColorControl = shouldOpen ? control : null;
+                control.root.classList.toggle('is-open', shouldOpen);
+                control.panel.hidden = !shouldOpen;
+                if (shouldOpen) syncInlineColorControl(control);
             });
 
             control.hue.addEventListener('input', () => {
@@ -2430,12 +2423,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             controlsPanel.appendChild(gui.domElement);
             enhanceInlineColorInputs(controlsPanel);
         }
-
-        document.addEventListener('pointerdown', (event) => {
-            if (activeInlineColorControl && !isInsideInlineColorPicker(event.target)) {
-                closeInlineColorPicker();
-            }
-        }, true);
 
         const toolCatalog = [
             {
