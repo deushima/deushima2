@@ -919,6 +919,10 @@ body > .site-footer {
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
 }
 
+.inline-color-panel[hidden] {
+    display: none !important;
+}
+
 .inline-color-sv {
     position: relative;
     height: 112px;
