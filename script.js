@@ -1217,10 +1217,93 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             depth: 200.0,
             bevelEnabled: true,
             bevelSegments: bevelSettings.bevelSegments,
-            steps: 2,
+            steps: 4,
+            curveSegments: 96,
             bevelSize: bevelSettings.bevelSize,
             bevelThickness: bevelSettings.bevelThickness
         };
+
+        function smoothExtrudeSideNormals(geometry) {
+            const position = geometry.attributes.position;
+            const sourceNormal = geometry.attributes.normal;
+            if (!position || !sourceNormal) return geometry;
+
+            const index = geometry.index ? geometry.index.array : null;
+            const normals = new Float32Array(position.count * 3);
+            const normalGroups = new Map();
+            const keyCache = new Array(position.count);
+            const faceA = new THREE.Vector3();
+            const faceB = new THREE.Vector3();
+            const faceC = new THREE.Vector3();
+            const edgeAB = new THREE.Vector3();
+            const edgeAC = new THREE.Vector3();
+            const faceNormal = new THREE.Vector3();
+            const precision = 1000;
+
+            const normalKind = (vertexIndex) => {
+                const nz = sourceNormal.getZ(vertexIndex);
+                return Math.abs(nz) > 0.94 ? 'cap' : 'side';
+            };
+
+            const vertexKey = (vertexIndex) => {
+                if (keyCache[vertexIndex]) return keyCache[vertexIndex];
+                const x = Math.round(position.getX(vertexIndex) * precision);
+                const y = Math.round(position.getY(vertexIndex) * precision);
+                const z = Math.round(position.getZ(vertexIndex) * precision);
+                const key = `${x},${y},${z},${normalKind(vertexIndex)}`;
+                keyCache[vertexIndex] = key;
+                return key;
+            };
+
+            const addSideNormal = (vertexIndex, normal) => {
+                if (normalKind(vertexIndex) !== 'side') return;
+                const key = vertexKey(vertexIndex);
+                let target = normalGroups.get(key);
+                if (!target) {
+                    target = new THREE.Vector3();
+                    normalGroups.set(key, target);
+                }
+                target.add(normal);
+            };
+
+            const triangleCount = index ? index.length / 3 : position.count / 3;
+            for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+                const ia = index ? index[triangle * 3] : triangle * 3;
+                const ib = index ? index[triangle * 3 + 1] : triangle * 3 + 1;
+                const ic = index ? index[triangle * 3 + 2] : triangle * 3 + 2;
+
+                faceA.fromBufferAttribute(position, ia);
+                faceB.fromBufferAttribute(position, ib);
+                faceC.fromBufferAttribute(position, ic);
+                edgeAB.subVectors(faceB, faceA);
+                edgeAC.subVectors(faceC, faceA);
+                faceNormal.crossVectors(edgeAB, edgeAC).normalize();
+
+                addSideNormal(ia, faceNormal);
+                addSideNormal(ib, faceNormal);
+                addSideNormal(ic, faceNormal);
+            }
+
+            for (let vertexIndex = 0; vertexIndex < position.count; vertexIndex += 1) {
+                const offset = vertexIndex * 3;
+                const groupedNormal = normalGroups.get(vertexKey(vertexIndex));
+
+                if (normalKind(vertexIndex) === 'side' && groupedNormal && groupedNormal.lengthSq() > 0.000001) {
+                    groupedNormal.normalize();
+                    normals[offset] = groupedNormal.x;
+                    normals[offset + 1] = groupedNormal.y;
+                    normals[offset + 2] = groupedNormal.z;
+                } else {
+                    normals[offset] = sourceNormal.getX(vertexIndex);
+                    normals[offset + 1] = sourceNormal.getY(vertexIndex);
+                    normals[offset + 2] = sourceNormal.getZ(vertexIndex);
+                }
+            }
+
+            geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+            geometry.attributes.normal.needsUpdate = true;
+            return geometry;
+        }
 
         const svgGroup = new THREE.Group();
         const svgContent = new THREE.Group();
@@ -2344,6 +2427,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 bevelEnabled: geometrySettings.bevelEnabled,
                 bevelSegments: bevelSettings.bevelSegments,
                 steps: geometrySettings.steps,
+                curveSegments: geometrySettings.curveSegments,
                 bevelSize: bevelSettings.bevelSize,
                 bevelThickness: bevelSettings.bevelThickness
             };
@@ -2353,7 +2437,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 const shapes = SVGLoader.createShapes(path);
                 for (const shape of shapes) {
                     allShapes.push(shape);
-                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                    const geometry = smoothExtrudeSideNormals(new THREE.ExtrudeGeometry(shape, extrudeSettings));
                     const mesh = new THREE.Mesh(geometry, liquidMaterial);
                     svgContent.add(mesh);
                 }
