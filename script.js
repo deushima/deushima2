@@ -1217,11 +1217,15 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             depth: 200.0,
             bevelEnabled: true,
             bevelSegments: bevelSettings.bevelSegments,
-            steps: 4,
-            curveSegments: 96,
+            steps: 2,
+            curveSegments: 48,
             bevelSize: bevelSettings.bevelSize,
             bevelThickness: bevelSettings.bevelThickness
         };
+
+        let geometrySmoothingToken = 0;
+        let geometrySmoothingQueue = [];
+        let geometrySmoothingScheduled = false;
 
         function smoothExtrudeSideNormals(geometry) {
             const position = geometry.attributes.position;
@@ -1303,6 +1307,29 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
             geometry.attributes.normal.needsUpdate = true;
             return geometry;
+        }
+
+        function scheduleGeometrySmoothing(mesh, token) {
+            geometrySmoothingQueue.push({ mesh, token });
+            if (geometrySmoothingScheduled) return;
+            geometrySmoothingScheduled = true;
+            requestAnimationFrame(processGeometrySmoothingQueue);
+        }
+
+        function processGeometrySmoothingQueue() {
+            const frameStart = performance.now();
+
+            while (geometrySmoothingQueue.length && performance.now() - frameStart < 8) {
+                const { mesh, token } = geometrySmoothingQueue.shift();
+                if (token !== geometrySmoothingToken || !mesh.parent || !mesh.geometry) continue;
+                smoothExtrudeSideNormals(mesh.geometry);
+            }
+
+            if (geometrySmoothingQueue.length) {
+                requestAnimationFrame(processGeometrySmoothingQueue);
+            } else {
+                geometrySmoothingScheduled = false;
+            }
         }
 
         const svgGroup = new THREE.Group();
@@ -2406,6 +2433,10 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
         function buildSVGFromData(svgData) {
             currentSVGData = svgData;
+            geometrySmoothingToken += 1;
+            geometrySmoothingQueue = [];
+            geometrySmoothingScheduled = false;
+            const buildToken = geometrySmoothingToken;
 
             // Reset existing group transformation so scaling math works flawlessly
             svgGroup.position.set(0, 0, 0);
@@ -2437,9 +2468,10 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 const shapes = SVGLoader.createShapes(path);
                 for (const shape of shapes) {
                     allShapes.push(shape);
-                    const geometry = smoothExtrudeSideNormals(new THREE.ExtrudeGeometry(shape, extrudeSettings));
+                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
                     const mesh = new THREE.Mesh(geometry, liquidMaterial);
                     svgContent.add(mesh);
+                    scheduleGeometrySmoothing(mesh, buildToken);
                 }
             }
 
