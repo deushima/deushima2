@@ -16,6 +16,11 @@
           <a class="hud-brand__link" href="https://www.deushima.com.ar" target="_blank" rel="noreferrer" aria-label="Ir a Deushima">
             <div class="hud-brand__logo" id="hudBrandLogo" aria-label="Logo Deushima"></div>
           </a>
+          <div class="language-switch" id="languageSwitch" aria-label="Idioma">
+            <button class="language-switch__button is-active" type="button" data-lang="es" aria-pressed="true">ES</button>
+            <span class="language-switch__divider">/</span>
+            <button class="language-switch__button" type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
         </div>
 
         <div class="hud-sidebar__filters" id="toolFilters" aria-label="Filtros de herramientas"></div>
@@ -69,7 +74,7 @@
             </button>
             <section class="controls-drawer__panel" aria-label="Parametros de la herramienta">
               <header class="controls-drawer__header">
-                <p>Parametros</p>
+                <p id="controlsDrawerKicker">Parametros</p>
                 <h2 id="controlsDrawerTitle">Dinamica Fluida</h2>
               </header>
               <div class="controls-drawer__body" id="controlsPanel"></div>
@@ -79,7 +84,7 @@
 
         <footer class="hud-info" aria-label="Informacion contextual">
           <div class="hud-info__left">
-            <p>Herramienta activa</p>
+            <p id="toolInfoKicker">Herramienta activa</p>
             <span id="toolInfoIndex">01</span>
           </div>
           <div class="hud-info__center">

@@ -93,6 +93,7 @@ body > .site-footer {
 }
 
 .hud-sidebar__brand {
+    position: relative;
     padding: 34px 22px 26px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
@@ -123,6 +124,40 @@ body > .site-footer {
     display: block;
     width: 100%;
     height: auto;
+}
+
+.language-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.language-switch__button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text-faint);
+    padding: 3px 6px;
+    border-radius: 999px;
+    font: 760 10px/1 "Inter Variable", sans-serif;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+}
+
+.language-switch__button.is-active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #111111;
+}
+
+.language-switch__divider {
+    color: rgba(255, 255, 255, 0.22);
+    font: 620 10px/1 "Inter Variable", sans-serif;
 }
 
 .hud-sidebar__filters {
@@ -964,8 +999,8 @@ body > .site-footer {
 
 .gradient-editor {
     display: grid;
-    gap: 10px;
-    padding: 12px;
+    gap: 11px;
+    padding: 10px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.025);
@@ -973,19 +1008,25 @@ body > .site-footer {
 
 .gradient-editor__header,
 .gradient-editor__list-title {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 82px;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     color: rgba(255, 255, 255, 0.56);
-    font: 640 10px/1 "Inter Variable", sans-serif;
+    font: 700 9px/1.15 "Inter Variable", sans-serif;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
+.gradient-editor__header span:last-child,
+.gradient-editor__list-title span:last-child {
+    text-align: right;
+}
+
 .gradient-editor__preview {
     position: relative;
-    padding-top: 4px;
-    padding-bottom: 30px;
+    padding-top: 2px;
+    padding-bottom: 25px;
 }
 
 .gradient-editor__bar {
@@ -1000,8 +1041,8 @@ body > .site-footer {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
-    height: 26px;
+    bottom: 1px;
+    height: 20px;
 }
 
 .gradient-editor__stop {
@@ -1039,33 +1080,34 @@ body > .site-footer {
 
 .gradient-editor__selected {
     display: grid;
-    gap: 8px;
+    gap: 7px;
     padding-top: 2px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .gradient-editor__selected-title {
     color: rgba(255, 255, 255, 0.56);
-    font: 640 10px/1 "Inter Variable", sans-serif;
+    font: 700 9px/1 "Inter Variable", sans-serif;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
 .gradient-editor__selected-controls {
     display: grid;
-    grid-template-columns: 70px minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: 58px minmax(0, 1fr) 74px;
+    gap: 7px;
     align-items: end;
 }
 
 .gradient-editor__field {
     display: grid;
-    gap: 6px;
+    gap: 5px;
+    min-width: 0;
 }
 
 .gradient-editor__field > span {
     color: rgba(255, 255, 255, 0.8);
-    font: 560 11px/1 "Inter Variable", sans-serif;
+    font: 620 9px/1 "Inter Variable", sans-serif;
 }
 
 .gradient-editor__color {
@@ -1077,9 +1119,10 @@ body > .site-footer {
 }
 
 .gradient-editor__position-wrap {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14px;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .gradient-editor__number {
@@ -1094,16 +1137,17 @@ body > .site-footer {
 
 .gradient-stop-list {
     display: grid;
-    gap: 6px;
+    gap: 5px;
 }
 
 .gradient-stop-item {
     display: grid;
-    grid-template-columns: 18px minmax(0, 1fr) auto auto;
-    gap: 8px;
+    grid-template-columns: 18px minmax(0, 1fr) 42px 14px;
+    gap: 7px;
     align-items: center;
     width: 100%;
-    padding: 8px 10px;
+    min-height: 28px;
+    padding: 5px 8px;
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 10px !important;
     background: rgba(0, 0, 0, 0.22);
@@ -1118,15 +1162,15 @@ body > .site-footer {
 
 .gradient-stop-item__swatch {
     display: block;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 5px;
 }
 
 .gradient-stop-item__hex,
 .gradient-stop-item__pos {
-    font: 600 11px/1 "Inter Variable", sans-serif;
+    font: 700 10px/1 "Inter Variable", sans-serif;
 }
 
 .gradient-stop-item__hex {
@@ -1138,25 +1182,28 @@ body > .site-footer {
 .gradient-stop-item__pos,
 .gradient-stop-item__close {
     color: rgba(255, 255, 255, 0.56);
+    text-align: right;
 }
 
 .gradient-stop-item__close {
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1;
+    text-align: center;
 }
 
 .gradient-stop-remove {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 86px;
+    min-width: 0;
+    width: 100%;
     height: 32px;
-    padding: 0 14px;
+    padding: 0 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px !important;
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.9);
-    font: 700 12px/1 "Inter Variable", sans-serif;
+    font: 700 10px/1 "Inter Variable", sans-serif;
 }
 
 .gradient-stop-remove:disabled {

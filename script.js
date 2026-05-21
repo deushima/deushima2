@@ -17,10 +17,13 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         const controlsDrawer = document.getElementById('controlsDrawer');
         const controlsPanel = document.getElementById('controlsPanel');
         const controlsToggle = document.getElementById('controlsToggle');
+        const controlsDrawerKicker = document.getElementById('controlsDrawerKicker');
         const controlsDrawerTitle = document.getElementById('controlsDrawerTitle');
+        const languageSwitch = document.getElementById('languageSwitch');
         const toolFiltersRoot = document.getElementById('toolFilters');
         const toolListRoot = document.getElementById('toolList');
         const toolInfoIndex = document.getElementById('toolInfoIndex');
+        const toolInfoKicker = document.getElementById('toolInfoKicker');
         const toolInfoMeta = document.getElementById('toolInfoMeta');
         const toolInfoTitle = document.getElementById('toolInfoTitle');
         const toolInfoDescription = document.getElementById('toolInfoDescription');
@@ -40,6 +43,193 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
         document.title = 'Deushima Liquid Metal Workspace';
         document.querySelectorAll('body > .sound-embed, body > .site-footer').forEach((node) => node.remove());
+
+        const languageCopy = {
+            es: {
+                controls: 'Controles',
+                parameters: 'Parametros',
+                activeTool: 'Herramienta activa',
+                fileCallout: 'proba tu logo',
+                filters: {
+                    all: 'Todas',
+                    visual: 'Visual',
+                    fluido: 'Fluido',
+                    material: 'Material',
+                    post: 'Post',
+                    geometria: 'Geometria',
+                    entorno: 'Entorno',
+                    presets: 'Presets',
+                    archivo: 'Archivo'
+                },
+                gradient: {
+                    editor: 'Editor',
+                    add: 'Click en la barra',
+                    selected: 'Parada seleccionada',
+                    color: 'Color',
+                    location: 'Ubicacion',
+                    delete: 'Eliminar',
+                    stops: 'Paradas',
+                    position: 'Posicion'
+                },
+                tools: {
+                    files: { title: 'Archivos', meta: 'SVG / PNG', description: 'Gestiona el SVG, la carga de nuevos assets y la exportacion final en PNG con fondo o transparente.' },
+                    scene: { title: 'Escena', meta: 'Visual / Fondo', description: 'Controla el color de fondo de la mesa de trabajo para decidir si el logo vive sobre negro pleno o una base distinta.' },
+                    fluid: { title: 'Dinamica Fluida', meta: 'Simulacion / Fluido', description: 'Define la vibracion liquida del metal, cuanto se desplaza la materia sobre la forma y que tan nitidos se mantienen sus bordes.' },
+                    iridescence: { title: 'Iridescencia', meta: 'Color / Refraccion', description: 'Anade el desvio cromatico interno del material y regula el espesor que determina como aparecen esos matices.' },
+                    material: { title: 'Material Base', meta: 'Metal / Superficie', description: 'Ajusta el cuerpo principal del logo: rugosidad, nivel metalico y capa de brillo superior.' },
+                    'structure-fill': { title: 'Estructura Completa', meta: 'Color / Relleno', description: 'Rellena las zonas oscuras de la estructura con un color editable. Por defecto usa plateado.' },
+                    glass: { title: 'Textura Glass', meta: 'Refraccion / Vidrio', description: 'Modifica transparencia, refraccion y tinte interno para llevar el logo hacia un look de vidrio.' },
+                    glow: { title: 'Glow', meta: 'Luz / Halo', description: 'Controla el halo alrededor del logo para sumar presencia sin romper la limpieza del diseno.' },
+                    chromatic: { title: 'Cromatico', meta: 'Postproceso / Chrome', description: 'Define separacion cromatica, contraste y exposicion blanca para un acabado mas editorial o agresivo.' },
+                    'image-filters': { title: 'Filtros', meta: 'Color / Presets', description: 'Aplica filtros de imagen con mini previews de material y color.' },
+                    'edge-smoothing': { title: 'Suavizar Bordes', meta: 'Postproceso / Anti Alias', description: 'Activa un suavizado final para reducir bordes pixelados sin cambiar la forma.' },
+                    'gradient-map': { title: 'Gradient Map', meta: 'Color / Mapa Tonal', description: 'Aplica un mapa de degradado como Photoshop, mezclando colores segun la luminancia.' },
+                    geometry: { title: 'Geometria', meta: 'Extrusion / Forma', description: 'Define el volumen real del logo: profundidad, bisel y lectura general en el espacio.' },
+                    bevel: { title: 'Dinamica de Bisel', meta: 'Geometria / Flujo', description: 'Redirige el comportamiento del fluido hacia el bisel para seguir mejor el contorno.' },
+                    environment: { title: 'Entorno', meta: 'Iluminacion / Textura', description: 'Permite cargar una textura de entorno para alterar reflejos e iluminacion.' },
+                    'export-360': { title: 'Export 360', meta: 'Video / Rotacion', description: 'Exporta una vuelta completa de 360 grados del logo sobre su eje vertical.' },
+                    'community-presets': { title: "Preset's Comunidad", meta: 'Disenadores / Looks', description: 'Guarda y aplica presets creados por la comunidad. Deushima v1 conserva el look anterior.' }
+                },
+                gui: {
+                    'Scene': 'Escena',
+                    'Background Color': 'Color de fondo',
+                    'Fluid Dynamics': 'Dinamica Fluida',
+                    'Pause Fluid': 'Pausar fluido',
+                    'Fluid Frame': 'Frame del fluido',
+                    'Ripple Scale': 'Escala de ondas',
+                    'Shape Reactivity': 'Reactividad de forma',
+                    'Distortion': 'Distorsion',
+                    'Edge Sharpness': 'Nitidez de borde',
+                    'Iridescence (Rainbow)': 'Iridescencia',
+                    'Intensity': 'Intensidad',
+                    'Index of Refraction': 'Indice de refraccion',
+                    'Thickness Min': 'Espesor min',
+                    'Thickness Max': 'Espesor max',
+                    'Base Material': 'Material Base',
+                    'Roughness': 'Rugosidad',
+                    'Metalness': 'Metalizado',
+                    'Clearcoat': 'Capa brillante',
+                    'Full Structure Color': 'Estructura Completa',
+                    'Enable Full Color': 'Activar color completo',
+                    'Structure Color': 'Color de estructura',
+                    'Fill Strength': 'Fuerza de relleno',
+                    'Glass Texture': 'Textura Glass',
+                    'Enable Glass': 'Activar glass',
+                    'Transmission': 'Transmision',
+                    'Glass Thickness': 'Espesor glass',
+                    'Glass IOR': 'IOR glass',
+                    'Reflectivity': 'Reflectividad',
+                    'Env Reflection': 'Reflejo entorno',
+                    'Tint Distance': 'Distancia tinte',
+                    'Glass Tint': 'Tinte glass',
+                    'Glow': 'Glow',
+                    'Enable Glow': 'Activar glow',
+                    'Glow Strength': 'Fuerza glow',
+                    'Glow Radius': 'Radio glow',
+                    'Glow Threshold': 'Umbral glow',
+                    'Chromatic': 'Cromatico',
+                    'Enable Chromatic': 'Activar cromatico',
+                    'Chromatic FX': 'FX cromatico',
+                    'Chromatic Angle': 'Angulo cromatico',
+                    'Chrome Level': 'Nivel chrome',
+                    'Contrast': 'Contraste',
+                    'White Exposure': 'Exposicion blanca',
+                    'Variation': 'Variacion',
+                    'Image Filters': 'Filtros',
+                    'Enable Filters': 'Activar filtros',
+                    'Affect Background': 'Afectar fondo',
+                    'Filter Amount': 'Intensidad filtro',
+                    'Edge Smoothing': 'Suavizar Bordes',
+                    'Enable Smoothing': 'Activar suavizado',
+                    'Smoothing Strength': 'Fuerza suavizado',
+                    'Gradient Map': 'Gradient Map',
+                    'Enable Gradient Map': 'Activar Gradient Map',
+                    'Amount': 'Intensidad',
+                    'Smoothness': 'Suavizado',
+                    'Geometry': 'Geometria',
+                    'Extrude Depth': 'Profundidad extrude',
+                    'Bevel Size': 'Tamano bisel',
+                    'Bevel Thickness': 'Espesor bisel',
+                    'Bevel Segments': 'Segmentos bisel',
+                    'Bevel Dynamics': 'Dinamica de Bisel',
+                    'Enable Redirect': 'Activar redireccion',
+                    'Redirect Strength': 'Fuerza redireccion',
+                    'Environment Texture': 'Textura de Entorno',
+                    'Enable Texture': 'Activar textura',
+                    'Affect Logo': 'Afectar logo',
+                    'Env Influence': 'Influencia entorno',
+                    'Upload PNG Texture': 'Subir textura PNG',
+                    'Clear Texture': 'Limpiar textura',
+                    'Export 360 Video': 'Export 360 Video',
+                    'Duration Sec': 'Duracion seg',
+                    'FPS': 'FPS',
+                    'Quality Mbps': 'Calidad Mbps',
+                    'Clockwise': 'Horario',
+                    'Export 360 MP4': 'Exportar 360 MP4',
+                    "Preset's de la comunidad": "Preset's de la comunidad",
+                    'Preset activo': 'Preset activo',
+                    'File Management': 'Archivos',
+                    'SVG URL': 'URL SVG',
+                    'Load from URL': 'Cargar URL',
+                    'Upload Custom SVG': 'Subir SVG',
+                    'Export PNG + BG': 'Exportar PNG + fondo',
+                    'Export PNG Transparent': 'Exportar PNG transparente',
+                    'Reset Logo': 'Resetear logo'
+                }
+            },
+            en: {
+                controls: 'Controls',
+                parameters: 'Parameters',
+                activeTool: 'Active tool',
+                fileCallout: 'try your logo',
+                filters: {
+                    all: 'All',
+                    visual: 'Visual',
+                    fluido: 'Fluid',
+                    material: 'Material',
+                    post: 'Post',
+                    geometria: 'Geometry',
+                    entorno: 'Environment',
+                    presets: 'Presets',
+                    archivo: 'Files'
+                },
+                gradient: {
+                    editor: 'Editor',
+                    add: 'Click bar to add',
+                    selected: 'Selected stop',
+                    color: 'Color',
+                    location: 'Location',
+                    delete: 'Delete',
+                    stops: 'Stops',
+                    position: 'Position'
+                },
+                tools: {
+                    files: { title: 'Files', meta: 'SVG / PNG', description: 'Manage the SVG, upload new assets, and export the final PNG with or without background.' },
+                    scene: { title: 'Scene', meta: 'Visual / Background', description: 'Control the workbench background color and decide whether the logo sits on pure black or another base.' },
+                    fluid: { title: 'Fluid Dynamics', meta: 'Simulation / Fluid', description: 'Define the liquid vibration of the metal, how much it moves across the shape, and how sharp the edges stay.' },
+                    iridescence: { title: 'Iridescence', meta: 'Color / Refraction', description: 'Add internal chromatic refraction and control the thickness that reveals those tones.' },
+                    material: { title: 'Base Material', meta: 'Metal / Surface', description: 'Adjust the main logo material: roughness, metallic level, and top clearcoat.' },
+                    'structure-fill': { title: 'Full Structure', meta: 'Color / Fill', description: 'Fill darker structural areas with an editable color. Silver is the default.' },
+                    glass: { title: 'Glass Texture', meta: 'Refraction / Glass', description: 'Adjust transparency, refraction, and inner tint for a liquid glass look.' },
+                    glow: { title: 'Glow', meta: 'Light / Halo', description: 'Control the halo around the logo and add presence without breaking the clean look.' },
+                    chromatic: { title: 'Chromatic', meta: 'Postprocess / Chrome', description: 'Control chromatic separation, contrast, and white exposure for a more editorial or aggressive finish.' },
+                    'image-filters': { title: 'Filters', meta: 'Color / Presets', description: 'Apply image filters with material and color previews.' },
+                    'edge-smoothing': { title: 'Edge Smoothing', meta: 'Postprocess / Anti Alias', description: 'Apply final smoothing to reduce pixelated edges without changing the shape.' },
+                    'gradient-map': { title: 'Gradient Map', meta: 'Color / Tonal Map', description: 'Apply a Photoshop-style gradient map based on image luminance.' },
+                    geometry: { title: 'Geometry', meta: 'Extrusion / Shape', description: 'Define the real volume of the logo: depth, bevel, and spatial read.' },
+                    bevel: { title: 'Bevel Dynamics', meta: 'Geometry / Flow', description: 'Redirect fluid behavior toward the bevel so it follows the contour better.' },
+                    environment: { title: 'Environment', meta: 'Lighting / Texture', description: 'Upload an environment texture to affect reflections and lighting.' },
+                    'export-360': { title: 'Export 360', meta: 'Video / Rotation', description: 'Export a full 360-degree turn of the logo on its vertical axis.' },
+                    'community-presets': { title: 'Community Presets', meta: 'Designers / Looks', description: 'Save and apply community-made presets. Deushima v1 keeps the previous look.' }
+                },
+                gui: {}
+            }
+        };
+        languageCopy.en.gui = Object.fromEntries(Object.keys(languageCopy.es.gui).map((key) => [key, key]));
+        languageCopy.en.gui["Preset's de la comunidad"] = 'Community Presets';
+        languageCopy.en.gui['Preset activo'] = 'Active preset';
+
+        let currentLanguage = 'es';
         document.querySelectorAll('.cursor-follower').forEach((node) => node.remove());
 
         function syncMusicButton() {
@@ -1669,10 +1859,11 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             const editor = document.createElement('div');
             editor.className = 'gradient-editor';
+            const gradientText = languageCopy[currentLanguage].gradient;
 
             const editorHeader = document.createElement('div');
             editorHeader.className = 'gradient-editor__header';
-            editorHeader.innerHTML = '<span>Editor de degradado</span><span>Click en la barra para agregar</span>';
+            editorHeader.innerHTML = `<span>${gradientText.editor}</span><span>${gradientText.add}</span>`;
             editor.appendChild(editorHeader);
 
             const previewWrap = document.createElement('div');
@@ -1719,20 +1910,20 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 const selectedPanel = document.createElement('div');
                 selectedPanel.className = 'gradient-editor__selected';
                 selectedPanel.innerHTML = `
-                    <div class="gradient-editor__selected-title">Parada seleccionada</div>
+                    <div class="gradient-editor__selected-title">${gradientText.selected}</div>
                     <div class="gradient-editor__selected-controls">
                         <label class="gradient-editor__field">
-                            <span>Color</span>
+                            <span>${gradientText.color}</span>
                             <input class="gradient-editor__color" type="color" value="${selectedStop.color}" data-inline-color-compact="true">
                         </label>
                         <label class="gradient-editor__field gradient-editor__field--position">
-                            <span>Ubicacion</span>
+                            <span>${gradientText.location}</span>
                             <div class="gradient-editor__position-wrap">
                                 <input class="gradient-editor__number" type="number" min="0" max="100" step="1" value="${Math.round(selectedStop.position * 100)}">
                                 <span>%</span>
                             </div>
                         </label>
-                        <button type="button" class="gradient-stop-remove"${gradientMapSettings.stops.length <= 2 ? ' disabled' : ''}>Eliminar</button>
+                        <button type="button" class="gradient-stop-remove"${gradientMapSettings.stops.length <= 2 ? ' disabled' : ''}>${gradientText.delete}</button>
                     </div>
                 `;
 
@@ -1751,7 +1942,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             const listTitle = document.createElement('div');
             listTitle.className = 'gradient-editor__list-title';
-            listTitle.innerHTML = '<span>Paradas de color</span><span>Ordenadas por posicion</span>';
+            listTitle.innerHTML = `<span>${gradientText.stops}</span><span>${gradientText.position}</span>`;
             editor.appendChild(listTitle);
 
             const list = document.createElement('div');
@@ -2622,6 +2813,57 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         let activeFilterId = 'all';
         let fileCalloutRoot = null;
 
+        function getToolCopy(tool) {
+            return languageCopy[currentLanguage].tools[tool.id] || tool;
+        }
+
+        function getFilterLabel(filter) {
+            return languageCopy[currentLanguage].filters[filter.id] || filter.label;
+        }
+
+        function translateGuiLabels() {
+            const allGuiCopies = [languageCopy.es.gui, languageCopy.en.gui];
+            const currentGuiCopy = languageCopy[currentLanguage].gui;
+            controlsPanel?.querySelectorAll?.('.lil-gui .title, .lil-gui .name').forEach((node) => {
+                if (!node.dataset.i18nKey) {
+                    const currentText = node.textContent.trim();
+                    const key = Object.keys(languageCopy.es.gui).find((candidate) => {
+                        return candidate === currentText || allGuiCopies.some((copy) => copy[candidate] === currentText);
+                    });
+                    if (key) node.dataset.i18nKey = key;
+                }
+                const nextText = currentGuiCopy[node.dataset.i18nKey];
+                if (nextText) node.textContent = nextText;
+            });
+        }
+
+        function syncLanguageControls() {
+            languageSwitch?.querySelectorAll?.('.language-switch__button').forEach((button) => {
+                const isActive = button.dataset.lang === currentLanguage;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+        }
+
+        function applyLanguage(nextLanguage = currentLanguage) {
+            currentLanguage = languageCopy[nextLanguage] ? nextLanguage : 'es';
+            document.documentElement.lang = currentLanguage;
+            if (controlsToggle) controlsToggle.textContent = languageCopy[currentLanguage].controls;
+            if (controlsDrawerKicker) controlsDrawerKicker.textContent = languageCopy[currentLanguage].parameters;
+            if (toolInfoKicker) toolInfoKicker.textContent = languageCopy[currentLanguage].activeTool;
+            translateGuiLabels();
+            renderFilters();
+            renderToolCards();
+            updateFilterState();
+            updateToolCardState();
+            renderInfo(hudToolCatalog.find((entry) => entry.id === activeToolId));
+            if (gradientStopsRoot) renderGradientStopsUI();
+            if (fileCalloutRoot) {
+                fileCalloutRoot.querySelector('.hud-file-callout__text').textContent = languageCopy[currentLanguage].fileCallout;
+            }
+            syncLanguageControls();
+        }
+
         function setDrawerState(isOpen) {
             if (!controlsDrawer || !controlsToggle) return;
             controlsDrawer.classList.toggle('is-open', isOpen);
@@ -2642,11 +2884,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
         function renderInfo(tool) {
             if (!tool) return;
+            const copy = getToolCopy(tool);
             if (toolInfoIndex) toolInfoIndex.textContent = tool.index;
-            if (toolInfoMeta) toolInfoMeta.textContent = tool.meta;
-            if (toolInfoTitle) toolInfoTitle.textContent = tool.title;
-            if (toolInfoDescription) toolInfoDescription.textContent = tool.description;
-            if (controlsDrawerTitle) controlsDrawerTitle.textContent = tool.title;
+            if (toolInfoMeta) toolInfoMeta.textContent = copy.meta;
+            if (toolInfoTitle) toolInfoTitle.textContent = copy.title;
+            if (toolInfoDescription) toolInfoDescription.textContent = copy.description;
+            if (controlsDrawerTitle) controlsDrawerTitle.textContent = copy.title;
         }
 
         function ensureFileCallout() {
@@ -2658,7 +2901,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             fileCalloutRoot.innerHTML = `
                 <span class="hud-file-callout__line"></span>
                 <span class="hud-file-callout__dot"></span>
-                <span class="hud-file-callout__text">probá tu logo</span>
+                <span class="hud-file-callout__text">${languageCopy[currentLanguage].fileCallout}</span>
             `;
             document.body.appendChild(fileCalloutRoot);
             return fileCalloutRoot;
@@ -2684,22 +2927,23 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             toolListRoot.innerHTML = '';
 
             for (const tool of hudToolCatalog) {
+                const copy = getToolCopy(tool);
                 const card = document.createElement('button');
                 card.type = 'button';
                 card.className = 'tool-card';
                 if (tool.callout) {
                     card.classList.add('tool-card--callout');
-                    card.dataset.callout = tool.callout;
+                    card.dataset.callout = languageCopy[currentLanguage].fileCallout;
                 }
                 card.dataset.toolId = tool.id;
                 card.innerHTML = `
                     <span class="tool-card__index">${tool.index}</span>
                     <span class="tool-card__content">
-                        <span class="tool-card__title">${tool.title}</span>
-                        <span class="tool-card__meta">${tool.meta}</span>
+                        <span class="tool-card__title">${copy.title}</span>
+                        <span class="tool-card__meta">${copy.meta}</span>
                     </span>
                     <span class="tool-card__arrow">↗</span>
-                    ${tool.callout ? `<span class="tool-card__callout">${tool.callout}</span>` : ''}
+                    ${tool.callout ? `<span class="tool-card__callout">${languageCopy[currentLanguage].fileCallout}</span>` : ''}
                 `;
 
                 card.querySelector('.tool-card__arrow').innerHTML = '&#8599;';
@@ -2738,7 +2982,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 button.type = 'button';
                 button.className = 'tool-filter';
                 button.dataset.filterId = filter.id;
-                button.textContent = filter.label;
+                button.textContent = getFilterLabel(filter);
                 button.addEventListener('click', () => {
                     activeFilterId = filter.id;
                     updateFilterState();
@@ -2786,6 +3030,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             closeInlineColorPicker();
             setDrawerState(!controlsDrawer.classList.contains('is-open'));
         });
+        languageSwitch?.addEventListener('click', (event) => {
+            const button = event.target.closest?.('.language-switch__button');
+            if (!button) return;
+            closeInlineColorPicker();
+            applyLanguage(button.dataset.lang);
+        });
         window.addEventListener('resize', syncFileCallout);
         toolListRoot?.addEventListener('scroll', syncFileCallout, { passive: true });
 
@@ -2796,6 +3046,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         updateToolCardState();
         renderInfo(hudToolCatalog.find((entry) => entry.id === activeToolId));
         setDrawerState(false);
+        applyLanguage('es');
 
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
