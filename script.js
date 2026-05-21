@@ -34,6 +34,11 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         const musicPlayer = document.getElementById('musicPlayer');
         const musicVolume = document.getElementById('musicVolume');
         const musicVolumeValue = document.getElementById('musicVolumeValue');
+        const contourTextureInput = document.createElement('input');
+        contourTextureInput.type = 'file';
+        contourTextureInput.accept = 'image/png,image/jpeg,image/webp';
+        contourTextureInput.hidden = true;
+        document.body.appendChild(contourTextureInput);
 
         const musicPlaylist = [
             { title: 'Meditation', src: './Song/Meditation.mp3' }
@@ -78,6 +83,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                     iridescence: { title: 'Iridescencia', meta: 'Color / Refraccion', description: 'Anade el desvio cromatico interno del material y regula el espesor que determina como aparecen esos matices.' },
                     material: { title: 'Material Base', meta: 'Metal / Superficie', description: 'Ajusta el cuerpo principal del logo: rugosidad, nivel metalico y capa de brillo superior.' },
                     'structure-fill': { title: 'Estructura Completa', meta: 'Color / Relleno', description: 'Rellena las zonas oscuras de la estructura con un color editable. Por defecto usa plateado.' },
+                    'extrude-contour': { title: 'Contorno Extrude', meta: 'Lateral / Textura', description: 'Modifica solo los laterales del extrude: color, reflejo y texturas como roca, poligono o cepillado.' },
                     glass: { title: 'Textura Glass', meta: 'Refraccion / Vidrio', description: 'Modifica transparencia, refraccion y tinte interno para llevar el logo hacia un look de vidrio.' },
                     glow: { title: 'Glow', meta: 'Luz / Halo', description: 'Controla el halo alrededor del logo para sumar presencia sin romper la limpieza del diseno.' },
                     chromatic: { title: 'Cromatico', meta: 'Postproceso / Chrome', description: 'Define separacion cromatica, contraste y exposicion blanca para un acabado mas editorial o agresivo.' },
@@ -113,6 +119,18 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                     'Enable Full Color': 'Activar color completo',
                     'Structure Color': 'Color de estructura',
                     'Fill Strength': 'Fuerza de relleno',
+                    'Extrude Contour': 'Contorno Extrude',
+                    'Enable Contour': 'Activar contorno',
+                    'Contour Color': 'Color contorno',
+                    'Surface Model': 'Modelo superficie',
+                    'Texture Strength': 'Fuerza textura',
+                    'Texture Scale': 'Escala textura',
+                    'Contour Roughness': 'Rugosidad contorno',
+                    'Contour Metalness': 'Metal contorno',
+                    'Contour Clearcoat': 'Brillo contorno',
+                    'Contour Reflection': 'Reflejo contorno',
+                    'Upload Side Texture': 'Subir textura lateral',
+                    'Clear Side Texture': 'Limpiar textura lateral',
                     'Glass Texture': 'Textura Glass',
                     'Enable Glass': 'Activar glass',
                     'Transmission': 'Transmision',
@@ -210,6 +228,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                     iridescence: { title: 'Iridescence', meta: 'Color / Refraction', description: 'Add internal chromatic refraction and control the thickness that reveals those tones.' },
                     material: { title: 'Base Material', meta: 'Metal / Surface', description: 'Adjust the main logo material: roughness, metallic level, and top clearcoat.' },
                     'structure-fill': { title: 'Full Structure', meta: 'Color / Fill', description: 'Fill darker structural areas with an editable color. Silver is the default.' },
+                    'extrude-contour': { title: 'Extrude Contour', meta: 'Side / Texture', description: 'Modify only the extrude sides: color, reflection, and textures like rock, polygon, or brushed metal.' },
                     glass: { title: 'Glass Texture', meta: 'Refraction / Glass', description: 'Adjust transparency, refraction, and inner tint for a liquid glass look.' },
                     glow: { title: 'Glow', meta: 'Light / Halo', description: 'Control the halo around the logo and add presence without breaking the clean look.' },
                     chromatic: { title: 'Chromatic', meta: 'Postprocess / Chrome', description: 'Control chromatic separation, contrast, and white exposure for a more editorial or aggressive finish.' },
@@ -901,6 +920,158 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             enabled: false,
             color: '#cfd2d4',
             strength: 0.75
+        };
+
+        const contourTextureModes = ['Smooth', 'Rock', 'Polygon', 'Brushed', 'Carbon', 'Uploaded'];
+        const contourTextureModeValues = {
+            Smooth: 0,
+            Rock: 1,
+            Polygon: 2,
+            Brushed: 3,
+            Carbon: 4,
+            Uploaded: 5
+        };
+
+        const extrudeContourSettings = {
+            enabled: false,
+            color: '#cfd2d4',
+            textureMode: 'Rock',
+            textureStrength: 0.55,
+            textureScale: 1.2,
+            roughness: 0.46,
+            metalness: 0.92,
+            clearcoat: 0.35,
+            envReflection: 1.1,
+            uploadTexture: () => { contourTextureInput.click(); },
+            clearTexture: () => {
+                if (uploadedContourTexture) {
+                    uploadedContourTexture.dispose();
+                    uploadedContourTexture = null;
+                }
+                if (extrudeContourSettings.textureMode === 'Uploaded') {
+                    extrudeContourSettings.textureMode = 'Rock';
+                }
+                applyExtrudeContourState();
+                refreshGuiControllers();
+            }
+        };
+
+        let uploadedContourTexture = null;
+
+        const extrudeContourMaterial = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(extrudeContourSettings.color),
+            metalness: extrudeContourSettings.metalness,
+            roughness: extrudeContourSettings.roughness,
+            clearcoat: extrudeContourSettings.clearcoat,
+            clearcoatRoughness: 0.18,
+            envMapIntensity: extrudeContourSettings.envReflection,
+            reflectivity: 0.72,
+            dithering: true
+        });
+
+        extrudeContourMaterial.userData = {
+            uContourEnabled: { value: extrudeContourSettings.enabled ? 1.0 : 0.0 },
+            uContourTextureMode: { value: contourTextureModeValues[extrudeContourSettings.textureMode] || 0 },
+            uContourTextureStrength: { value: extrudeContourSettings.textureStrength },
+            uContourTextureScale: { value: extrudeContourSettings.textureScale }
+        };
+
+        extrudeContourMaterial.onBeforeCompile = (shader) => {
+            shader.uniforms.uContourEnabled = extrudeContourMaterial.userData.uContourEnabled;
+            shader.uniforms.uContourTextureMode = extrudeContourMaterial.userData.uContourTextureMode;
+            shader.uniforms.uContourTextureStrength = extrudeContourMaterial.userData.uContourTextureStrength;
+            shader.uniforms.uContourTextureScale = extrudeContourMaterial.userData.uContourTextureScale;
+
+            shader.vertexShader = `
+                varying vec3 vContourWorldPos;
+                varying vec3 vContourLocalPos;
+            ` + shader.vertexShader;
+
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <worldpos_vertex>',
+                `
+                #include <worldpos_vertex>
+                vContourWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                vContourLocalPos = position;
+                `
+            );
+
+            shader.fragmentShader = `
+                uniform float uContourEnabled;
+                uniform float uContourTextureMode;
+                uniform float uContourTextureStrength;
+                uniform float uContourTextureScale;
+                varying vec3 vContourWorldPos;
+                varying vec3 vContourLocalPos;
+
+                float contourHash(vec3 p) {
+                    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
+                }
+
+                float contourNoise(vec3 p) {
+                    vec3 i = floor(p);
+                    vec3 f = fract(p);
+                    f = f * f * (3.0 - 2.0 * f);
+
+                    float n000 = contourHash(i + vec3(0.0, 0.0, 0.0));
+                    float n100 = contourHash(i + vec3(1.0, 0.0, 0.0));
+                    float n010 = contourHash(i + vec3(0.0, 1.0, 0.0));
+                    float n110 = contourHash(i + vec3(1.0, 1.0, 0.0));
+                    float n001 = contourHash(i + vec3(0.0, 0.0, 1.0));
+                    float n101 = contourHash(i + vec3(1.0, 0.0, 1.0));
+                    float n011 = contourHash(i + vec3(0.0, 1.0, 1.0));
+                    float n111 = contourHash(i + vec3(1.0, 1.0, 1.0));
+
+                    float nx00 = mix(n000, n100, f.x);
+                    float nx10 = mix(n010, n110, f.x);
+                    float nx01 = mix(n001, n101, f.x);
+                    float nx11 = mix(n011, n111, f.x);
+                    float nxy0 = mix(nx00, nx10, f.y);
+                    float nxy1 = mix(nx01, nx11, f.y);
+                    return mix(nxy0, nxy1, f.z);
+                }
+
+                float contourPattern(vec3 p) {
+                    float mode = uContourTextureMode;
+                    if (mode < 0.5) {
+                        return 1.0;
+                    }
+                    if (mode < 1.5) {
+                        float rock = contourNoise(p * 1.35) * 0.58 + contourNoise(p * 3.2 + 12.4) * 0.32 + contourNoise(p * 7.0) * 0.10;
+                        return 0.66 + rock * 0.58;
+                    }
+                    if (mode < 2.5) {
+                        vec3 cell = floor(p * 1.1);
+                        float facet = contourHash(cell);
+                        float edge = max(max(abs(fract(p.x * 1.1) - 0.5), abs(fract(p.y * 1.1) - 0.5)), abs(fract(p.z * 1.1) - 0.5));
+                        return 0.64 + facet * 0.46 + smoothstep(0.44, 0.5, edge) * 0.18;
+                    }
+                    if (mode < 3.5) {
+                        float grain = sin((p.x * 0.9 + p.y * 0.22 + p.z * 0.11) * 28.0);
+                        grain += sin((p.x * 0.18 + p.z * 0.7) * 56.0) * 0.35;
+                        return 0.82 + grain * 0.12;
+                    }
+                    if (mode < 4.5) {
+                        vec2 grid = abs(fract(p.xy * 2.2) - 0.5);
+                        float weave = smoothstep(0.18, 0.0, min(grid.x, grid.y));
+                        float carbon = contourNoise(p * 2.4) * 0.25 + weave * 0.75;
+                        return 0.68 + carbon * 0.42;
+                    }
+                    return 1.0;
+                }
+            ` + shader.fragmentShader;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <dithering_fragment>',
+                `
+                vec3 contourP = (vContourWorldPos + vContourLocalPos * 0.02) * max(uContourTextureScale, 0.001);
+                float contourValue = contourPattern(contourP);
+                float contourMix = clamp(uContourEnabled * uContourTextureStrength, 0.0, 1.0);
+                vec3 contourTextured = gl_FragColor.rgb * mix(vec3(1.0), vec3(contourValue), contourMix);
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, contourTextured, uContourEnabled);
+                #include <dithering_fragment>
+                `
+            );
         };
 
         const bevelSettings = {
@@ -2124,6 +2295,40 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             liquidMaterial.userData.uStructureFillStrength.value = structureFillSettings.strength;
         }
 
+        function getLogoMeshMaterial() {
+            return extrudeContourSettings.enabled ? [liquidMaterial, extrudeContourMaterial] : liquidMaterial;
+        }
+
+        function syncLogoMeshMaterials() {
+            const material = getLogoMeshMaterial();
+            for (const child of svgContent.children) {
+                if (child.isMesh) {
+                    child.material = material;
+                }
+            }
+        }
+
+        function applyExtrudeContourState() {
+            extrudeContourMaterial.color.set(extrudeContourSettings.color);
+            extrudeContourMaterial.roughness = extrudeContourSettings.roughness;
+            extrudeContourMaterial.metalness = extrudeContourSettings.metalness;
+            extrudeContourMaterial.clearcoat = extrudeContourSettings.clearcoat;
+            extrudeContourMaterial.envMapIntensity = extrudeContourSettings.envReflection;
+            extrudeContourMaterial.userData.uContourEnabled.value = extrudeContourSettings.enabled ? 1.0 : 0.0;
+            extrudeContourMaterial.userData.uContourTextureMode.value = contourTextureModeValues[extrudeContourSettings.textureMode] || 0;
+            extrudeContourMaterial.userData.uContourTextureStrength.value = extrudeContourSettings.textureStrength;
+            extrudeContourMaterial.userData.uContourTextureScale.value = extrudeContourSettings.textureScale;
+
+            if (extrudeContourSettings.textureMode === 'Uploaded' && uploadedContourTexture) {
+                extrudeContourMaterial.map = uploadedContourTexture;
+            } else if (extrudeContourMaterial.map) {
+                extrudeContourMaterial.map = null;
+            }
+
+            extrudeContourMaterial.needsUpdate = true;
+            syncLogoMeshMaterials();
+        }
+
         function applyChromeLevel() {
             const chromeBoost = chromaticSettings.chromeLevel;
             liquidMaterial.metalness = Math.min(1, baseMaterialSnapshot.metalness + chromeBoost * 0.22);
@@ -2156,6 +2361,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 chromatic: { enabled: true, intensity: 0.0021, angle: 1.48, chromeLevel: 0.0, contrast: 1.0, whiteExposure: 1.0, preset: 'balanced' },
                 imageFilter: { enabled: false, affectBackground: false, amount: 0.85, selected: 'neutral-silver' },
                 structureFill: { enabled: false, color: '#cfd2d4', strength: 0.75 },
+                extrudeContour: { enabled: false, color: '#cfd2d4', textureMode: 'Rock', textureStrength: 0.55, textureScale: 1.2, roughness: 0.46, metalness: 0.92, clearcoat: 0.35, envReflection: 1.1 },
                 geometry: { depth: 100.0, bevelSize: 2.5, bevelThickness: 2.5, bevelSegments: 96 },
                 bevel: { enableBevelDynamics: false, bevelFlowInfluence: 1.0 },
                 environment: { enabled: false, affectLogo: false, affectBackground: false, envIntensity: 1.35 }
@@ -2219,6 +2425,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             Object.assign(chromaticSettings, preset.chromatic);
             Object.assign(imageFilterSettings, preset.imageFilter || { enabled: false, affectBackground: false, amount: 0.85, selected: 'neutral-silver' });
             Object.assign(structureFillSettings, preset.structureFill || { enabled: false, color: '#cfd2d4', strength: 0.75 });
+            Object.assign(extrudeContourSettings, preset.extrudeContour || getDefaultExtrudeContourSnapshot());
             Object.assign(bevelSettings, preset.bevel);
             Object.assign(environmentTextureSettings, preset.environment);
 
@@ -2232,6 +2439,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             applyChromeLevel();
             applyGlassState();
             applyStructureFillState();
+            applyExtrudeContourState();
             applyGlowState();
             applyChromaticState();
             applyImageFilterState();
@@ -2251,6 +2459,34 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
         function cloneStops(stops) {
             return stops.map((stop) => ({ ...stop }));
+        }
+
+        function getExtrudeContourSnapshot() {
+            return {
+                enabled: extrudeContourSettings.enabled,
+                color: extrudeContourSettings.color,
+                textureMode: extrudeContourSettings.textureMode,
+                textureStrength: extrudeContourSettings.textureStrength,
+                textureScale: extrudeContourSettings.textureScale,
+                roughness: extrudeContourSettings.roughness,
+                metalness: extrudeContourSettings.metalness,
+                clearcoat: extrudeContourSettings.clearcoat,
+                envReflection: extrudeContourSettings.envReflection
+            };
+        }
+
+        function getDefaultExtrudeContourSnapshot() {
+            return {
+                enabled: false,
+                color: '#cfd2d4',
+                textureMode: 'Rock',
+                textureStrength: 0.55,
+                textureScale: 1.2,
+                roughness: 0.46,
+                metalness: 0.92,
+                clearcoat: 0.35,
+                envReflection: 1.1
+            };
         }
 
         function captureHistorySnapshot() {
@@ -2279,6 +2515,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 chromatic: { ...chromaticSettings },
                 imageFilter: { ...imageFilterSettings },
                 structureFill: { ...structureFillSettings },
+                extrudeContour: getExtrudeContourSnapshot(),
                 edgeSmooth: { ...edgeSmoothSettings },
                 gradientMap: {
                     enabled: gradientMapSettings.enabled,
@@ -2371,6 +2608,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             Object.assign(chromaticSettings, snapshot.chromatic);
             Object.assign(imageFilterSettings, snapshot.imageFilter || { enabled: false, affectBackground: false, amount: 0.85, selected: 'neutral-silver' });
             Object.assign(structureFillSettings, snapshot.structureFill);
+            Object.assign(extrudeContourSettings, snapshot.extrudeContour || getDefaultExtrudeContourSnapshot());
             Object.assign(edgeSmoothSettings, snapshot.edgeSmooth);
             Object.assign(environmentTextureSettings, snapshot.environment);
 
@@ -2391,6 +2629,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             applyChromeLevel();
             applyGlassState();
             applyStructureFillState();
+            applyExtrudeContourState();
             applyGlowState();
             applyChromaticState();
             applyImageFilterState();
@@ -2469,7 +2708,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 for (const shape of shapes) {
                     allShapes.push(shape);
                     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-                    const mesh = new THREE.Mesh(geometry, liquidMaterial);
+                    const mesh = new THREE.Mesh(geometry, getLogoMeshMaterial());
                     svgContent.add(mesh);
                     scheduleGeometrySmoothing(mesh, buildToken);
                 }
@@ -2591,6 +2830,37 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         structureFillFolder.add(structureFillSettings, 'strength', 0.0, 1.5, 0.01).name('Fill Strength').onChange(() => {
             applyStructureFillState();
         });
+
+        const extrudeContourFolder = gui.addFolder('Extrude Contour');
+        extrudeContourFolder.add(extrudeContourSettings, 'enabled').name('Enable Contour').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.addColor(extrudeContourSettings, 'color').name('Contour Color').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'textureMode', contourTextureModes).name('Surface Model').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'textureStrength', 0.0, 1.0, 0.01).name('Texture Strength').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'textureScale', 0.15, 4.0, 0.01).name('Texture Scale').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'roughness', 0.0, 1.0, 0.01).name('Contour Roughness').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'metalness', 0.0, 1.0, 0.01).name('Contour Metalness').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'clearcoat', 0.0, 1.0, 0.01).name('Contour Clearcoat').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'envReflection', 0.0, 4.0, 0.01).name('Contour Reflection').onChange(() => {
+            applyExtrudeContourState();
+        });
+        extrudeContourFolder.add(extrudeContourSettings, 'uploadTexture').name('Upload Side Texture');
+        extrudeContourFolder.add(extrudeContourSettings, 'clearTexture').name('Clear Side Texture');
 
         const glassFolder = gui.addFolder('Glass Texture');
         glassFolder.add(glassSettings, 'enabled').name('Enable Glass').onChange(() => {
@@ -2899,17 +3169,18 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             { id: 'iridescence', index: '04', title: 'Iridescencia', meta: 'Color / Refraccion', description: 'Anade el desvio cromatico interno del material y regula el espesor que determina como aparecen esos matices en la superficie.', categories: ['all', 'material', 'color'], folder: iridescenceFolder },
             { id: 'material', index: '05', title: 'Material Base', meta: 'Metal / Superficie', description: 'Ajusta el cuerpo principal del logo: rugosidad, nivel metalico y la capa de brillo superior que define su pulido general.', categories: ['all', 'material'], folder: materialFolder },
             { id: 'structure-fill', index: '06', title: 'Estructura Completa', meta: 'Color / Relleno', description: 'Rellena las zonas oscuras de la estructura con un color editable. Por defecto usa plateado para que laterales y parte trasera no queden negros.', categories: ['all', 'material', 'visual', 'color'], folder: structureFillFolder },
-            { id: 'glass', index: '07', title: 'Textura Glass', meta: 'Refraccion / Vidrio', description: 'Modifica la transparencia, la refraccion y el tinte interno para llevar el logo hacia un look de vidrio o cristal liquido.', categories: ['all', 'material', 'visual'], folder: glassFolder },
-            { id: 'glow', index: '08', title: 'Glow', meta: 'Luz / Halo', description: 'Controla el halo alrededor del logo para sumar presencia sin romper la limpieza del diseno. Ideal para dar volumen sutil.', categories: ['all', 'luz', 'post'], folder: glowFolder },
-            { id: 'chromatic', index: '09', title: 'Cromatico', meta: 'Postproceso / Chrome', description: 'Define la separacion cromatica, el contraste y la exposicion blanca del render para darle un acabado mas editorial o mas agresivo.', categories: ['all', 'post', 'color'], folder: chromaticFolder },
-            { id: 'image-filters', index: '10', title: 'Filtros', meta: 'Color / Presets', description: 'Aplica filtros de imagen con mini previews de material/color. Sirve para probar acabados tonales rapidos sin alterar el material base del logo.', categories: ['all', 'post', 'visual', 'color'], folder: imageFiltersFolder },
-            { id: 'edge-smoothing', index: '11', title: 'Suavizar Bordes', meta: 'Postproceso / Anti Alias', description: 'Activa un suavizado final sobre el render para reducir bordes pixelados sin cambiar la forma ni el material del logo.', categories: ['all', 'post', 'visual'], folder: edgeSmoothFolder },
-            { id: 'gradient-map', index: '12', title: 'Gradient Map', meta: 'Color / Mapa Tonal', description: 'Aplica un mapa de degradado al render completo, como en Photoshop: las sombras toman un color y las luces otro, mezclandose segun la luminancia.', categories: ['all', 'post', 'color'], folder: gradientMapFolder },
-            { id: 'geometry', index: '13', title: 'Geometria', meta: 'Extrusion / Forma', description: 'Aqui decides el volumen real del logo: profundidad, bisel y la lectura general de la pieza en el espacio.', categories: ['all', 'geometria'], folder: geometryFolder },
-            { id: 'bevel', index: '14', title: 'Dinamica de Bisel', meta: 'Geometria / Flujo', description: 'Redirige el comportamiento del fluido hacia el bisel para que la materia siga el contorno de la forma con mas intencion.', categories: ['all', 'geometria', 'fluido'], folder: bevelFolder },
-            { id: 'environment', index: '15', title: 'Entorno', meta: 'Iluminacion / Textura', description: 'Permite cargar una textura de entorno para alterar reflejos, iluminacion y, si quieres, la lectura del propio material del logo.', categories: ['all', 'entorno', 'visual'], folder: environmentFolder },
-            { id: 'export-360', index: '16', title: 'Export 360', meta: 'Video / Rotacion', description: 'Exporta una vuelta completa de 360 grados del logo sobre su eje vertical. El navegador intentara descargar MP4 y usara WebM si MP4 no esta disponible.', categories: ['all', 'archivo'], folder: export360Folder },
-            { id: 'community-presets', index: '17', title: "Preset's Comunidad", meta: 'Disenadores / Looks', description: 'Guarda y aplica presets creados por la comunidad. Deushima v1 conserva el look anterior para volver a el cuando quieras.', categories: ['all', 'presets', 'material', 'post'], folder: communityFolder }
+            { id: 'extrude-contour', index: '07', title: 'Contorno Extrude', meta: 'Lateral / Textura', description: 'Cambia solo el contorno/lateral del extrude: color, reflectividad y modelos de textura como roca, poligono, cepillado o una textura subida.', categories: ['all', 'material', 'geometria', 'visual', 'color'], folder: extrudeContourFolder },
+            { id: 'glass', index: '08', title: 'Textura Glass', meta: 'Refraccion / Vidrio', description: 'Modifica la transparencia, la refraccion y el tinte interno para llevar el logo hacia un look de vidrio o cristal liquido.', categories: ['all', 'material', 'visual'], folder: glassFolder },
+            { id: 'glow', index: '09', title: 'Glow', meta: 'Luz / Halo', description: 'Controla el halo alrededor del logo para sumar presencia sin romper la limpieza del diseno. Ideal para dar volumen sutil.', categories: ['all', 'luz', 'post'], folder: glowFolder },
+            { id: 'chromatic', index: '10', title: 'Cromatico', meta: 'Postproceso / Chrome', description: 'Define la separacion cromatica, el contraste y la exposicion blanca del render para darle un acabado mas editorial o mas agresivo.', categories: ['all', 'post', 'color'], folder: chromaticFolder },
+            { id: 'image-filters', index: '11', title: 'Filtros', meta: 'Color / Presets', description: 'Aplica filtros de imagen con mini previews de material/color. Sirve para probar acabados tonales rapidos sin alterar el material base del logo.', categories: ['all', 'post', 'visual', 'color'], folder: imageFiltersFolder },
+            { id: 'edge-smoothing', index: '12', title: 'Suavizar Bordes', meta: 'Postproceso / Anti Alias', description: 'Activa un suavizado final sobre el render para reducir bordes pixelados sin cambiar la forma ni el material del logo.', categories: ['all', 'post', 'visual'], folder: edgeSmoothFolder },
+            { id: 'gradient-map', index: '13', title: 'Gradient Map', meta: 'Color / Mapa Tonal', description: 'Aplica un mapa de degradado al render completo, como en Photoshop: las sombras toman un color y las luces otro, mezclandose segun la luminancia.', categories: ['all', 'post', 'color'], folder: gradientMapFolder },
+            { id: 'geometry', index: '14', title: 'Geometria', meta: 'Extrusion / Forma', description: 'Aqui decides el volumen real del logo: profundidad, bisel y la lectura general de la pieza en el espacio.', categories: ['all', 'geometria'], folder: geometryFolder },
+            { id: 'bevel', index: '15', title: 'Dinamica de Bisel', meta: 'Geometria / Flujo', description: 'Redirige el comportamiento del fluido hacia el bisel para que la materia siga el contorno de la forma con mas intencion.', categories: ['all', 'geometria', 'fluido'], folder: bevelFolder },
+            { id: 'environment', index: '16', title: 'Entorno', meta: 'Iluminacion / Textura', description: 'Permite cargar una textura de entorno para alterar reflejos, iluminacion y, si quieres, la lectura del propio material del logo.', categories: ['all', 'entorno', 'visual'], folder: environmentFolder },
+            { id: 'export-360', index: '17', title: 'Export 360', meta: 'Video / Rotacion', description: 'Exporta una vuelta completa de 360 grados del logo sobre su eje vertical. El navegador intentara descargar MP4 y usara WebM si MP4 no esta disponible.', categories: ['all', 'archivo'], folder: export360Folder },
+            { id: 'community-presets', index: '18', title: "Preset's Comunidad", meta: 'Disenadores / Looks', description: 'Guarda y aplica presets creados por la comunidad. Deushima v1 conserva el look anterior para volver a el cuando quieras.', categories: ['all', 'presets', 'material', 'post'], folder: communityFolder }
         ];
 
         const hudFilterCatalog = [
@@ -3184,9 +3455,36 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             event.target.value = '';
         });
 
+        contourTextureInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textureLoader.load(e.target.result, (texture) => {
+                        if (uploadedContourTexture) {
+                            uploadedContourTexture.dispose();
+                        }
+                        texture.colorSpace = THREE.SRGBColorSpace;
+                        texture.wrapS = THREE.RepeatWrapping;
+                        texture.wrapT = THREE.RepeatWrapping;
+                        texture.repeat.set(2.5, 2.5);
+                        texture.needsUpdate = true;
+                        uploadedContourTexture = texture;
+                        extrudeContourSettings.textureMode = 'Uploaded';
+                        extrudeContourSettings.enabled = true;
+                        applyExtrudeContourState();
+                        refreshGuiControllers();
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+            event.target.value = '';
+        });
+
         applyChromeLevel();
         applyGlassState();
         applyStructureFillState();
+        applyExtrudeContourState();
         applyGlowState();
         applyChromaticState();
         applyImageFilterState();
