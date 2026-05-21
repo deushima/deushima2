@@ -1284,6 +1284,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         let gradientStopsRoot = null;
         let activeGradientDragId = null;
         let activeInlineColorControl = null;
+        let inlineColorOutsidePointerHandler = null;
 
         function clamp01(value) {
             return Math.min(1, Math.max(0, value));
@@ -1386,6 +1387,19 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 panel.hidden = true;
             });
             activeInlineColorControl = null;
+            if (inlineColorOutsidePointerHandler) {
+                document.removeEventListener('pointerdown', inlineColorOutsidePointerHandler);
+                inlineColorOutsidePointerHandler = null;
+            }
+        }
+
+        function bindInlineColorOutsideClose() {
+            if (inlineColorOutsidePointerHandler) return;
+            inlineColorOutsidePointerHandler = (event) => {
+                const isInsidePicker = event.target.closest?.('.inline-color-control, .inline-color-panel');
+                if (!isInsidePicker) closeInlineColorPicker();
+            };
+            document.addEventListener('pointerdown', inlineColorOutsidePointerHandler);
         }
 
         function syncInlineColorControl(control, color = control.input.value) {
@@ -1485,6 +1499,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
                 if (shouldOpen) {
                     syncInlineColorControl(control);
                     positionInlineColorPanel(control);
+                    bindInlineColorOutsideClose();
                 }
             });
 
