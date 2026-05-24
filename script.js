@@ -1323,7 +1323,10 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         };
 
         // --- DYNAMIC SHAPE MASK GENERATOR ---
-        function generateShapeMaskTexture(shapes) {
+        function generateShapeMaskTexture(shapes, options = {}) {
+            const maskResolution = options.maskResolution || 1024;
+            const maskBlur = options.maskBlur || 45;
+            const pointSamples = options.pointSamples || 100;
             const bounds = new THREE.Box2();
             for(const shape of shapes) {
                 const pts = shape.getPoints();
@@ -1341,8 +1344,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             const paddedHeight = height + pad * 2;
 
             const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 1024;
+            canvas.width = maskResolution;
+            canvas.height = maskResolution;
             const ctx = canvas.getContext('2d');
 
             ctx.fillStyle = 'black';
@@ -1352,7 +1355,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             const scaleY = canvas.height / paddedHeight;
 
             ctx.save();
-            ctx.filter = 'blur(45px)'; 
+            ctx.filter = `blur(${maskBlur}px)`; 
             ctx.fillStyle = 'white';
             
             ctx.scale(scaleX, scaleY);
@@ -1360,13 +1363,13 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             ctx.beginPath();
             for(const shape of shapes) {
-                const pts = shape.getPoints(100);
+                const pts = shape.getPoints(pointSamples);
                 if(pts.length) {
-                    ctx.moveTo(pts.x, pts.y);
+                    ctx.moveTo(pts[0].x, pts[0].y);
                     for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
                 }
                 for(const hole of shape.holes) {
-                    const hPts = hole.getPoints(100);
+                    const hPts = hole.getPoints(pointSamples);
                     if(hPts.length) {
                         ctx.moveTo(hPts[0].x, hPts[0].y);
                         for(let i=1; i<hPts.length; i++) ctx.lineTo(hPts[i].x, hPts[i].y);
@@ -1378,7 +1381,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 
             const tex = new THREE.CanvasTexture(canvas);
             tex.flipY = false; 
-            
+
+            const previousMask = liquidMaterial.userData.uShapeMask.value;
+            if (previousMask && previousMask !== dummyTex && previousMask.dispose) {
+                previousMask.dispose();
+            }
+
             liquidMaterial.userData.uShapeMask.value = tex;
             liquidMaterial.userData.uShapeBounds.value.set(paddedMinX, paddedMinY, paddedWidth, paddedHeight);
         }
@@ -1394,9 +1402,94 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             bevelThickness: bevelSettings.bevelThickness
         };
 
+        const geometryBuildProfiles = {
+            startup: {
+                bevelEnabled: true,
+                bevelSegments: 16,
+                curveSegments: 16,
+                maskResolution: 384,
+                maskBlur: 20,
+                pointSamples: 24,
+                frameBudget: 4
+            },
+            full: {
+                bevelEnabled: true,
+                bevelSegments: Infinity,
+                curveSegments: Infinity,
+                maskResolution: 1024,
+                maskBlur: 45,
+                pointSamples: 100,
+                frameBudget: 7
+            }
+        };
+
+        let asyncBuildToken = 0;
+        let startupRefineHandle = null;
+
         let geometrySmoothingToken = 0;
         let geometrySmoothingQueue = [];
         let geometrySmoothingScheduled = false;
+
+        function getBuildProfile(quality = 'full') {
+            return geometryBuildProfiles[quality] || geometryBuildProfiles.full;
+        }
+
+        function getExtrudeSettingsForQuality(quality = 'full') {
+            const profile = getBuildProfile(quality);
+            return {
+                depth: geometrySettings.depth,
+                bevelEnabled: geometrySettings.bevelEnabled && profile.bevelEnabled !== false,
+                bevelSegments: Math.max(1, Math.min(bevelSettings.bevelSegments, profile.bevelSegments)),
+                steps: geometrySettings.steps,
+                curveSegments: Math.max(4, Math.min(geometrySettings.curveSegments, profile.curveSegments)),
+                bevelSize: bevelSettings.bevelSize,
+                bevelThickness: bevelSettings.bevelThickness
+            };
+        }
+
+        function getMaskSettingsForQuality(quality = 'full') {
+            const profile = getBuildProfile(quality);
+            return {
+                maskResolution: profile.maskResolution,
+                maskBlur: profile.maskBlur,
+                pointSamples: profile.pointSamples
+            };
+        }
+
+        function disposeContentChildren(group) {
+            while(group.children.length > 0){ 
+                const child = group.children[0];
+                group.remove(child); 
+                if (child.geometry) child.geometry.dispose();
+            }
+        }
+
+        function resetSVGTransforms() {
+            svgGroup.position.set(0, 0, 0);
+            svgGroup.scale.set(1, 1, 1);
+            svgGroup.rotation.set(0, 0, 0);
+            svgContent.position.set(0, 0, 0);
+            svgContent.scale.set(1, 1, 1);
+            svgContent.rotation.set(0, 0, 0);
+            svgGroup.updateMatrixWorld();
+        }
+
+        function applySVGLayoutFromContent(contentGroup) {
+            const box = new THREE.Box3().setFromObject(contentGroup);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const rawCenter = box.getCenter(new THREE.Vector3());
+            
+            if (maxDim > 0) {
+                const scale = compositionSettings.logoFitSize / maxDim; 
+                svgGroup.scale.set(scale, -scale, scale); 
+            }
+
+            svgContent.position.sub(rawCenter);
+            svgGroup.position.y += compositionSettings.verticalOffset;
+            controls.target.set(0, compositionSettings.verticalOffset, 0);
+            controls.update();
+        }
 
         function smoothExtrudeSideNormals(geometry) {
             const position = geometry.attributes.position;
@@ -2665,43 +2758,30 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         }
 
         function rebuildCurrentSVG() {
+            cancelStartupQualityRefine();
             if (currentSVGData) {
-                buildSVGFromData(currentSVGData);
+                buildSVGFromData(currentSVGData, { quality: 'full' });
             }
         }
 
-        function buildSVGFromData(svgData) {
+        function buildSVGFromData(svgData, options = {}) {
+            if (options.incremental) {
+                buildSVGFromDataIncremental(svgData, options);
+                return;
+            }
+
+            const quality = options.quality || 'full';
             currentSVGData = svgData;
+            asyncBuildToken += 1;
             geometrySmoothingToken += 1;
             geometrySmoothingQueue = [];
             geometrySmoothingScheduled = false;
             const buildToken = geometrySmoothingToken;
 
-            // Reset existing group transformation so scaling math works flawlessly
-            svgGroup.position.set(0, 0, 0);
-            svgGroup.scale.set(1, 1, 1);
-            svgGroup.rotation.set(0, 0, 0);
-            svgContent.position.set(0, 0, 0);
-            svgContent.scale.set(1, 1, 1);
-            svgContent.rotation.set(0, 0, 0);
-            svgGroup.updateMatrixWorld();
+            resetSVGTransforms();
+            disposeContentChildren(svgContent);
 
-            while(svgContent.children.length > 0){ 
-                const child = svgContent.children[0];
-                svgContent.remove(child); 
-                if (child.geometry) child.geometry.dispose();
-            }
-
-            const extrudeSettings = {
-                depth: geometrySettings.depth,
-                bevelEnabled: geometrySettings.bevelEnabled,
-                bevelSegments: bevelSettings.bevelSegments,
-                steps: geometrySettings.steps,
-                curveSegments: geometrySettings.curveSegments,
-                bevelSize: bevelSettings.bevelSize,
-                bevelThickness: bevelSettings.bevelThickness
-            };
-
+            const extrudeSettings = getExtrudeSettingsForQuality(quality);
             const allShapes = [];
             for (const path of svgData.paths) {
                 const shapes = SVGLoader.createShapes(path);
@@ -2715,48 +2795,154 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             }
 
             if (allShapes.length > 0) {
-                generateShapeMaskTexture(allShapes);
+                generateShapeMaskTexture(allShapes, getMaskSettingsForQuality(quality));
             }
 
-            // --- PERFECT CENTERING FIX ---
-            // 1. Calculate proper scale before moving anything
-            const box = new THREE.Box3().setFromObject(svgContent);
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const rawCenter = box.getCenter(new THREE.Vector3());
-            
-            if (maxDim > 0) {
-                const scale = compositionSettings.logoFitSize / maxDim; 
-                svgGroup.scale.set(scale, -scale, scale); 
-            }
-
-            // 2. Center the content inside the parent pivot so rotation stays locked
-            // to the logo's visual center instead of orbiting around the SVG origin.
-            svgContent.position.sub(rawCenter);
-            svgGroup.position.y += compositionSettings.verticalOffset;
-            controls.target.set(0, compositionSettings.verticalOffset, 0);
-            controls.update();
+            applySVGLayoutFromContent(svgContent);
+            options.onComplete?.();
         }
 
-        function loadSVGFromString(svgText) {
+        function buildSVGFromDataIncremental(svgData, options = {}) {
+            const quality = options.quality || 'full';
+            const profile = getBuildProfile(quality);
+            const buildToken = geometrySmoothingToken + 1;
+            const token = asyncBuildToken + 1;
+            const tempContent = new THREE.Group();
+            const allShapes = [];
+            const shapeQueue = [];
+            const extrudeSettings = getExtrudeSettingsForQuality(quality);
+
+            currentSVGData = svgData;
+            asyncBuildToken = token;
+            geometrySmoothingToken = buildToken;
+            geometrySmoothingQueue = [];
+            geometrySmoothingScheduled = false;
+
+            for (const path of svgData.paths) {
+                const shapes = SVGLoader.createShapes(path);
+                for (const shape of shapes) {
+                    shapeQueue.push(shape);
+                }
+            }
+
+            const abortTempBuild = () => {
+                disposeContentChildren(tempContent);
+            };
+
+            const finishTempBuild = () => {
+                if (token !== asyncBuildToken || currentSVGData !== svgData) {
+                    abortTempBuild();
+                    return;
+                }
+
+                resetSVGTransforms();
+                disposeContentChildren(svgContent);
+                while (tempContent.children.length > 0) {
+                    svgContent.add(tempContent.children[0]);
+                }
+
+                if (allShapes.length > 0) {
+                    generateShapeMaskTexture(allShapes, getMaskSettingsForQuality(quality));
+                }
+
+                applySVGLayoutFromContent(svgContent);
+                options.onComplete?.();
+            };
+
+            const buildStep = () => {
+                if (token !== asyncBuildToken || currentSVGData !== svgData) {
+                    abortTempBuild();
+                    return;
+                }
+
+                const frameStart = performance.now();
+                while (shapeQueue.length && performance.now() - frameStart < profile.frameBudget) {
+                    const shape = shapeQueue.shift();
+                    allShapes.push(shape);
+                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                    const mesh = new THREE.Mesh(geometry, getLogoMeshMaterial());
+                    tempContent.add(mesh);
+                    scheduleGeometrySmoothing(mesh, buildToken);
+                }
+
+                if (shapeQueue.length) {
+                    requestAnimationFrame(buildStep);
+                } else {
+                    finishTempBuild();
+                }
+            };
+
+            requestAnimationFrame(buildStep);
+        }
+
+        function cancelStartupQualityRefine() {
+            if (!startupRefineHandle) return;
+            if (startupRefineHandle.type === 'idle' && window.cancelIdleCallback) {
+                window.cancelIdleCallback(startupRefineHandle.id);
+            } else {
+                clearTimeout(startupRefineHandle.id);
+            }
+            startupRefineHandle = null;
+        }
+
+        function scheduleStartupQualityRefine(svgData) {
+            cancelStartupQualityRefine();
+            const scheduledAfterToken = asyncBuildToken;
+
+            const runRefine = () => {
+                startupRefineHandle = null;
+                if (currentSVGData !== svgData || asyncBuildToken !== scheduledAfterToken) return;
+                buildSVGFromData(svgData, { quality: 'full', incremental: true });
+            };
+
+            const scheduleIdle = () => {
+                if (window.requestIdleCallback) {
+                    startupRefineHandle = {
+                        type: 'idle',
+                        id: window.requestIdleCallback(runRefine, { timeout: 1800 })
+                    };
+                } else {
+                    startupRefineHandle = {
+                        type: 'timeout',
+                        id: window.setTimeout(runRefine, 900)
+                    };
+                }
+            };
+
+            requestAnimationFrame(() => requestAnimationFrame(scheduleIdle));
+        }
+
+        function loadSVGFromString(svgText, options = {}) {
             const svgData = svgLoader.parse(svgText);
-            buildSVGFromData(svgData);
+            buildSVGFromData(svgData, {
+                quality: options.quality || 'full',
+                incremental: Boolean(options.incremental),
+                onComplete: options.refineAfterStart
+                    ? () => scheduleStartupQualityRefine(svgData)
+                    : undefined
+            });
         }
 
-        function loadSVGFromURL(url) {
+        function loadSVGFromURL(url, options = {}) {
             if (!url || url.trim() === '') {
-                loadSVGFromString(INLINE_INITIAL_SVG || appleSVG);
+                loadSVGFromString(INLINE_INITIAL_SVG || appleSVG, options);
                 return;
             }
             svgLoader.load(
                 url,
                 (svgData) => {
-                    buildSVGFromData(svgData);
+                    buildSVGFromData(svgData, {
+                        quality: options.quality || 'full',
+                        incremental: Boolean(options.incremental),
+                        onComplete: options.refineAfterStart
+                            ? () => scheduleStartupQualityRefine(svgData)
+                            : undefined
+                    });
                 },
                 undefined,
                 (error) => {
                     console.error('Error loading SVG from URL. Falling back to embedded default logo.', error);
-                    loadSVGFromString(INLINE_INITIAL_SVG || appleSVG);
+                    loadSVGFromString(INLINE_INITIAL_SVG || appleSVG, options);
                 }
             );
         }
@@ -2769,12 +2955,13 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         `;
         
         // --- INITIAL STARTUP ---
+        const initialLogoLoadOptions = { quality: 'startup', incremental: true, refineAfterStart: false };
         if (INLINE_INITIAL_SVG) {
-            loadSVGFromString(INLINE_INITIAL_SVG);
+            loadSVGFromString(INLINE_INITIAL_SVG, initialLogoLoadOptions);
         } else if (INITIAL_SVG_URL && INITIAL_SVG_URL.trim() !== '') {
-            loadSVGFromURL(INITIAL_SVG_URL);
+            loadSVGFromURL(INITIAL_SVG_URL, initialLogoLoadOptions);
         } else {
-            loadSVGFromString(appleSVG);
+            loadSVGFromString(appleSVG, initialLogoLoadOptions);
         }
 
         // --- GUI SETUP ---

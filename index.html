@@ -149,7 +149,6 @@
         panel.textContent = `PROMISE ERROR\n${event.reason?.message || event.reason || 'Unknown error'}`;
       });
     </script>
-    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
     <script type="importmap">
         {
             "imports": {
@@ -342,7 +341,16 @@ l-22 85 0 1045 c0 1119 -2 1062 52 1234 70 224 199 413 381 558 42 33 68 60
         </a>
       </div>
     </footer>
-    <script type="module" src="./script.js?v=153d3c5"></script>
+    <script type="module">
+      const loadWorkspace = () => import('./script.js?v=startup-perf-20260524')
+        .catch((error) => console.error('No se pudo iniciar Deushima Workspace.', error));
+
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadWorkspace, { timeout: 350 });
+      } else {
+        setTimeout(loadWorkspace, 80);
+      }
+    </script>
 
   </body>
   
