@@ -8,28 +8,33 @@
     <script>
       (() => {
         try {
-          const transitionKey = "deushimaCrtTransition";
+          const transitionKey = "deushimaShutterTransition";
           if (sessionStorage.getItem(transitionKey) === "pending") {
             sessionStorage.removeItem(transitionKey);
-            document.documentElement.classList.add("is-crt-entering");
+            document.documentElement.classList.add("is-shutter-entering");
           }
         } catch {}
       })();
     </script>
-    <link rel="stylesheet" href="./style.css?v=20260912-crt1">
+    <link rel="stylesheet" href="./style.css?v=20260912-shutter1">
 
   </head>
     
   <body>
     <div class="page-transition" data-page-transition aria-hidden="true">
-      <span class="page-transition__beam"></span>
-      <span class="page-transition__flare"></span>
+      <div class="page-transition__shutter" aria-hidden="true">
+        <span class="page-transition__panel page-transition__panel--top"></span>
+        <span class="page-transition__panel page-transition__panel--right"></span>
+        <span class="page-transition__panel page-transition__panel--bottom"></span>
+        <span class="page-transition__panel page-transition__panel--left"></span>
+      </div>
+      <img class="page-transition__logo" src="./deushima.svg.svg" alt="">
     </div>
 
     <div class="app-shell">
       <aside class="hud-sidebar" aria-label="Panel de herramientas">
         <div class="hud-sidebar__brand">
-          <a class="hud-brand__link" href="/" data-crt-nav aria-label="Ir a Deushima">
+          <a class="hud-brand__link" href="/" data-shutter-nav aria-label="Ir a Deushima">
             <div class="hud-brand__logo" id="hudBrandLogo" aria-label="Logo Deushima"></div>
           </a>
           <div class="language-switch" id="languageSwitch" aria-label="Idioma">
@@ -360,24 +365,24 @@ l-22 85 0 1045 c0 1119 -2 1062 52 1234 70 224 199 413 381 558 42 33 68 60
     <script>
       (() => {
         const transition = document.querySelector("[data-page-transition]");
-        const transitionKey = "deushimaCrtTransition";
-        const transitionDuration = 720;
+        const transitionKey = "deushimaShutterTransition";
+        const transitionDuration = 820;
         let transitionStarted = false;
 
-        const finishEntry = () => document.documentElement.classList.remove("is-crt-entering");
+        const finishEntry = () => document.documentElement.classList.remove("is-shutter-entering");
 
-        if (document.documentElement.classList.contains("is-crt-entering")) {
+        if (document.documentElement.classList.contains("is-shutter-entering")) {
           const onEntryAnimationEnd = (event) => {
-            if (event.target !== transition || event.animationName !== "crtOverlayOn") return;
+            if (!event.target.classList?.contains("page-transition__panel") || event.animationName !== "preloaderPanelOpen") return;
             transition.removeEventListener("animationend", onEntryAnimationEnd);
             finishEntry();
           };
 
           transition?.addEventListener("animationend", onEntryAnimationEnd);
-          window.setTimeout(finishEntry, 1200);
+          window.setTimeout(finishEntry, 1000);
         }
 
-        document.querySelectorAll("a[data-crt-nav]").forEach((link) => {
+        document.querySelectorAll("a[data-shutter-nav]").forEach((link) => {
           link.addEventListener("click", (event) => {
             if (event.defaultPrevented || event.button !== 0) return;
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -406,7 +411,7 @@ l-22 85 0 1045 c0 1119 -2 1062 52 1234 70 224 199 413 381 558 42 33 68 60
       })();
     </script>
     <script type="module">
-      const loadWorkspace = () => import('./script.js?v=20260912-crt1')
+      const loadWorkspace = () => import('./script.js?v=20260912-shutter1')
         .catch((error) => console.error('No se pudo iniciar Deushima Workspace.', error));
 
       if ('requestIdleCallback' in window) {
