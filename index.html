@@ -5,15 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liquid Metal in Forms - (SVG support)  – Support me by PayPal: https://paypal.com/paypalme/sabosugi</title>
-    <link rel="stylesheet" href="./style.css">
+    <script>
+      (() => {
+        try {
+          const transitionKey = "deushimaCrtTransition";
+          if (sessionStorage.getItem(transitionKey) === "pending") {
+            sessionStorage.removeItem(transitionKey);
+            document.documentElement.classList.add("is-crt-entering");
+          }
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="./style.css?v=20260912-crt1">
 
   </head>
     
   <body>
+    <div class="page-transition" data-page-transition aria-hidden="true">
+      <span class="page-transition__beam"></span>
+      <span class="page-transition__flare"></span>
+    </div>
+
     <div class="app-shell">
       <aside class="hud-sidebar" aria-label="Panel de herramientas">
         <div class="hud-sidebar__brand">
-          <a class="hud-brand__link" href="https://www.deushima.com.ar" target="_blank" rel="noreferrer" aria-label="Ir a Deushima">
+          <a class="hud-brand__link" href="/" data-crt-nav aria-label="Ir a Deushima">
             <div class="hud-brand__logo" id="hudBrandLogo" aria-label="Logo Deushima"></div>
           </a>
           <div class="language-switch" id="languageSwitch" aria-label="Idioma">
@@ -341,8 +357,56 @@ l-22 85 0 1045 c0 1119 -2 1062 52 1234 70 224 199 413 381 558 42 33 68 60
         </a>
       </div>
     </footer>
+    <script>
+      (() => {
+        const transition = document.querySelector("[data-page-transition]");
+        const transitionKey = "deushimaCrtTransition";
+        const transitionDuration = 720;
+        let transitionStarted = false;
+
+        const finishEntry = () => document.documentElement.classList.remove("is-crt-entering");
+
+        if (document.documentElement.classList.contains("is-crt-entering")) {
+          const onEntryAnimationEnd = (event) => {
+            if (event.target !== transition || event.animationName !== "crtOverlayOn") return;
+            transition.removeEventListener("animationend", onEntryAnimationEnd);
+            finishEntry();
+          };
+
+          transition?.addEventListener("animationend", onEntryAnimationEnd);
+          window.setTimeout(finishEntry, 1200);
+        }
+
+        document.querySelectorAll("a[data-crt-nav]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            if (event.defaultPrevented || event.button !== 0) return;
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            if (transitionStarted) {
+              event.preventDefault();
+              return;
+            }
+
+            event.preventDefault();
+            transitionStarted = true;
+
+            try {
+              sessionStorage.setItem(transitionKey, "pending");
+            } catch {}
+
+            document.body.classList.add("is-page-leaving");
+            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            window.setTimeout(() => window.location.assign(link.href), reducedMotion ? 80 : transitionDuration);
+          });
+        });
+
+        window.addEventListener("pageshow", () => {
+          transitionStarted = false;
+          document.body.classList.remove("is-page-leaving");
+        });
+      })();
+    </script>
     <script type="module">
-      const loadWorkspace = () => import('./script.js?v=startup-perf-20260524')
+      const loadWorkspace = () => import('./script.js?v=20260912-crt1')
         .catch((error) => console.error('No se pudo iniciar Deushima Workspace.', error));
 
       if ('requestIdleCallback' in window) {
